@@ -9,6 +9,7 @@ import android.view.*;
 import android.widget.*;
 import tkaxv7s.xposed.sesame.R;
 import tkaxv7s.xposed.sesame.data.*;
+import tkaxv7s.xposed.sesame.data.task.ModelTask;
 import tkaxv7s.xposed.sesame.util.*;
 
 import java.io.File;
@@ -40,11 +41,12 @@ public class SettingsActivity extends BaseActivity {
             userId = intent.getStringExtra("userId");
             userName = intent.getStringExtra("userName");
         }
-        UserIdMap.setCurrentUid(userId, false);
+        Model.initAllModel();
+        UserIdMap.setCurrentUserId(userId);
         UserIdMap.load(userId);
         CooperationIdMap.load(userId);
-        ReserveIdMap.load(userId);
-        BeachIdMap.load(userId);
+        ReserveIdMap.load();
+        BeachIdMap.load();
         ConfigV2.load(userId);
         LanguageUtil.setLocale(this);
         setContentView(R.layout.activity_settings);
@@ -117,17 +119,19 @@ public class SettingsActivity extends BaseActivity {
         if (isSave) {
             if (ConfigV2.isModify(userId) && ConfigV2.save(userId, false)) {
                 Toast.makeText(this, "保存成功！", Toast.LENGTH_SHORT).show();
-                try {
-                    sendBroadcast(new Intent("com.eg.android.AlipayGphone.sesame.restart"));
-                } catch (Throwable th) {
-                    Log.printStackTrace(th);
+                if (!StringUtil.isEmpty(userId)) {
+                    try {
+                        Intent intent = new Intent("com.eg.android.AlipayGphone.sesame.restart");
+                        intent.putExtra("userId", userId);
+                        sendBroadcast(intent);
+                    } catch (Throwable th) {
+                        Log.printStackTrace(th);
+                    }
                 }
             }
             if (!StringUtil.isEmpty(userId)) {
                 UserIdMap.save(userId);
                 CooperationIdMap.save(userId);
-                ReserveIdMap.save(userId);
-                BeachIdMap.save(userId);
             }
         }
         finish();

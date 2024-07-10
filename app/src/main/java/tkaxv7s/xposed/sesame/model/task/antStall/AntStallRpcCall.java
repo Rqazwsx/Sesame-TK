@@ -1,11 +1,10 @@
 package tkaxv7s.xposed.sesame.model.task.antStall;
 
 import org.json.JSONArray;
-
-import java.util.UUID;
-
 import org.json.JSONObject;
 import tkaxv7s.xposed.sesame.hook.ApplicationHook;
+
+import java.util.UUID;
 
 /**
  * @author Constanline
@@ -74,10 +73,10 @@ public class AntStallRpcCall {
                 "[{\"source\":\"ANTFARM\",\"systemType\":\"android\",\"version\":\"" + VERSION + "\"}]");
     }
 
-    public static String friendHome(String userId, String source) {
+    public static String friendHome(String userId) {
         return ApplicationHook.requestString("com.alipay.antstall.friend.home",
                 "[{\"arouseAppParams\":{},\"friendUserId\":\"" + userId +
-                        "\",\"source\":\"" + source + "\",\"systemType\":\"android\",\"version\":\"" + VERSION + "\"}]");
+                        "\",\"source\":\"ch_appcenter__chsub_9patch\",\"systemType\":\"android\",\"version\":\"" + VERSION + "\"}]");
     }
 
 

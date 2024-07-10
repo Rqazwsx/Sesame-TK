@@ -2,15 +2,14 @@ package tkaxv7s.xposed.sesame.rpc;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import tkaxv7s.xposed.sesame.model.normal.base.BaseModel;
 import tkaxv7s.xposed.sesame.data.RuntimeInfo;
 import tkaxv7s.xposed.sesame.entity.RpcEntity;
 import tkaxv7s.xposed.sesame.hook.ApplicationHook;
+import tkaxv7s.xposed.sesame.model.normal.base.BaseModel;
 import tkaxv7s.xposed.sesame.util.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.text.DateFormat;
 
 public class OldRpcBridge implements RpcBridge {
 
@@ -80,100 +79,102 @@ public class OldRpcBridge implements RpcBridge {
         int id = rpcEntity.hashCode();
         String method = rpcEntity.getRequestMethod();
         String data = rpcEntity.getRequestData();
-        int count = 0;
-        do {
-            count++;
-            Object resp;
-            try {
-                if (rpcCallMethod.getParameterTypes().length == 12) {
-                    resp = rpcCallMethod.invoke(
-                            null, method, data, "", true, null, null, false, curH5PageImpl, 0, "", false, -1);
-                } else {
-                    resp = rpcCallMethod.invoke(
-                            null, method, data, "", true, null, null, false, curH5PageImpl, 0, "", false, -1, "");
-                }
-                Log.i(TAG, "old rpc request | id: " + id + " | method: " + method + " | data: " + data);
-            } catch (Throwable t) {
-                Log.i(TAG, "old rpc request | id: " + id + " | method: " + method + " err:");
-                Log.printStackTrace(TAG, t);
-                if (t instanceof InvocationTargetException) {
-                    String msg = t.getCause().getMessage();
-                    if (!StringUtil.isEmpty(msg)) {
-                        if (msg.contains("登录超时")) {
-                            if (!ApplicationHook.isOffline()) {
-                                ApplicationHook.setOffline(true);
-                                NotificationUtil.setContentText("登录超时");
-                                if (BaseModel.getTimeoutRestart().getValue()) {
-                                    Log.record("尝试重新登录");
-                                    ApplicationHook.reLoginByBroadcast();
+        try {
+            int count = 0;
+            do {
+                count++;
+                Object resp;
+                try {
+                    if (rpcCallMethod.getParameterTypes().length == 12) {
+                        resp = rpcCallMethod.invoke(
+                                null, method, data, "", true, null, null, false, curH5PageImpl, 0, "", false, -1);
+                    } else {
+                        resp = rpcCallMethod.invoke(
+                                null, method, data, "", true, null, null, false, curH5PageImpl, 0, "", false, -1, "");
+                    }
+                } catch (Throwable t) {
+                    rpcEntity.setError();
+                    Log.i(TAG, "old rpc request | id: " + id + " | method: " + method + " err:");
+                    Log.printStackTrace(TAG, t);
+                    if (t instanceof InvocationTargetException) {
+                        String msg = t.getCause().getMessage();
+                        if (!StringUtil.isEmpty(msg)) {
+                            if (msg.contains("登录超时")) {
+                                if (!ApplicationHook.isOffline()) {
+                                    ApplicationHook.setOffline(true);
+                                    NotificationUtil.updateStatusText("登录超时");
+                                    if (BaseModel.getTimeoutRestart().getValue()) {
+                                        Log.record("尝试重新登录");
+                                        ApplicationHook.reLoginByBroadcast();
+                                    }
                                 }
-                            }
-                        } else if (msg.contains("[1004]") && "alipay.antmember.forest.h5.collectEnergy".equals(method)) {
-                            if (BaseModel.getWaitWhenException().getValue() > 0) {
-                                long waitTime = System.currentTimeMillis() + BaseModel.getWaitWhenException().getValue();
-                                RuntimeInfo.getInstance().put(RuntimeInfo.RuntimeInfoKey.ForestPauseTime, waitTime);
-                                NotificationUtil.setContentText("触发异常,等待至" + DateFormat.getDateTimeInstance().format(waitTime));
-                                Log.record("触发异常,等待至" + DateFormat.getDateTimeInstance().format(waitTime));
-                            }
-                            if (retryInterval < 0) {
+                            } else if (msg.contains("[1004]") && "alipay.antmember.forest.h5.collectEnergy".equals(method)) {
+                                if (BaseModel.getWaitWhenException().getValue() > 0) {
+                                    long waitTime = System.currentTimeMillis() + BaseModel.getWaitWhenException().getValue();
+                                    RuntimeInfo.getInstance().put(RuntimeInfo.RuntimeInfoKey.ForestPauseTime, waitTime);
+                                    NotificationUtil.updateStatusText("异常");
+                                    Log.record("触发异常,等待至" + TimeUtil.getCommonDate(waitTime));
+                                }
+                                if (retryInterval < 0) {
+                                    try {
+                                        Thread.sleep(600 + RandomUtil.delay());
+                                    } catch (InterruptedException e) {
+                                        Log.printStackTrace(e);
+                                    }
+                                } else if (retryInterval > 0) {
+                                    try {
+                                        Thread.sleep(retryInterval);
+                                    } catch (InterruptedException e) {
+                                        Log.printStackTrace(e);
+                                    }
+                                }
+                            } else if (msg.contains("MMTPException")) {
                                 try {
-                                    Thread.sleep(600 + RandomUtil.delay());
-                                } catch (InterruptedException e) {
+                                    String jsonString = "{\"resultCode\":\"FAIL\",\"memo\":\"MMTPException\",\"resultDesc\":\"MMTPException\"}";
+                                    rpcEntity.setResponseObject(new JSONObject(jsonString), jsonString);
+                                    return rpcEntity;
+                                } catch (JSONException e) {
                                     Log.printStackTrace(e);
                                 }
-                            } else if (retryInterval > 0) {
-                                try {
-                                    Thread.sleep(retryInterval);
-                                } catch (InterruptedException e) {
-                                    Log.printStackTrace(e);
+                                if (retryInterval < 0) {
+                                    try {
+                                        Thread.sleep(600 + RandomUtil.delay());
+                                    } catch (InterruptedException e) {
+                                        Log.printStackTrace(e);
+                                    }
+                                } else if (retryInterval > 0) {
+                                    try {
+                                        Thread.sleep(retryInterval);
+                                    } catch (InterruptedException e) {
+                                        Log.printStackTrace(e);
+                                    }
                                 }
+                                continue;
                             }
-                        } else if (msg.contains("MMTPException")) {
-                            try {
-                                String jsonString = "{\"resultCode\":\"FAIL\",\"memo\":\"MMTPException\",\"resultDesc\":\"MMTPException\"}";
-                                rpcEntity.setResponseObject(new JSONObject(jsonString), jsonString);
-                                rpcEntity.setError();
-                                return rpcEntity;
-                            } catch (JSONException e) {
-                                Log.printStackTrace(e);
-                            }
-                            if (retryInterval < 0) {
-                                try {
-                                    Thread.sleep(600 + RandomUtil.delay());
-                                } catch (InterruptedException e) {
-                                    Log.printStackTrace(e);
-                                }
-                            } else if (retryInterval > 0) {
-                                try {
-                                    Thread.sleep(retryInterval);
-                                } catch (InterruptedException e) {
-                                    Log.printStackTrace(e);
-                                }
-                            }
-                            continue;
                         }
                     }
-                }
-                return null;
-            }
-            try {
-                String resultStr = (String) getResponseMethod.invoke(resp);
-                Log.i(TAG, "old rpc response | id: " + id + " | data: " + resultStr);
-                JSONObject resultObject = new JSONObject(resultStr);
-                if (resultObject.optString("memo", "").contains("系统繁忙")) {
-                    ApplicationHook.setOffline(true);
-                    NotificationUtil.setContentText("系统繁忙，可能需要滑动验证");
-                    Log.record("系统繁忙，可能需要滑动验证");
                     return null;
                 }
-                rpcEntity.setResponseObject(resultObject, resultStr);
-                return rpcEntity;
-            } catch (Throwable t) {
-                Log.i(TAG, "old rpc response | id: " + id + " | method: " + method + " get err:");
-            }
+                try {
+                    String resultStr = (String) getResponseMethod.invoke(resp);
+                    JSONObject resultObject = new JSONObject(resultStr);
+                    if (resultObject.optString("memo", "").contains("系统繁忙")) {
+                        ApplicationHook.setOffline(true);
+                        NotificationUtil.updateStatusText("系统繁忙，可能需要滑动验证");
+                        Log.record("系统繁忙，可能需要滑动验证");
+                        return null;
+                    }
+                    rpcEntity.setResponseObject(resultObject, resultStr);
+                    return rpcEntity;
+                } catch (Throwable t) {
+                    Log.i(TAG, "old rpc response | id: " + id + " | method: " + method + " get err:");
+                }
+                return null;
+            } while (count < tryCount);
             return null;
-        } while (count < tryCount);
-        return null;
+        } finally {
+            Log.i("Old RPC\n方法: " + method + "\n参数: " + data + "\n数据: " + rpcEntity.getResponseString() + "\n");
+        }
     }
 
 }

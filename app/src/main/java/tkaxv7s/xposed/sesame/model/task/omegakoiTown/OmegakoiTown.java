@@ -3,7 +3,7 @@ package tkaxv7s.xposed.sesame.model.task.omegakoiTown;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import tkaxv7s.xposed.sesame.data.ModelFields;
-import tkaxv7s.xposed.sesame.data.ModelTask;
+import tkaxv7s.xposed.sesame.data.task.ModelTask;
 import tkaxv7s.xposed.sesame.data.RuntimeInfo;
 import tkaxv7s.xposed.sesame.model.base.TaskCommon;
 import tkaxv7s.xposed.sesame.util.Log;
@@ -78,7 +78,7 @@ public class OmegakoiTown extends ModelTask {
         }
     }
 
-    private static void getUserTasks() {
+    private void getUserTasks() {
         try {
             String s = OmegakoiTownRpcCall.getUserTasks();
             JSONObject jo = new JSONObject(s);
@@ -118,7 +118,7 @@ public class OmegakoiTown extends ModelTask {
         }
     }
 
-    private static void getSignInStatus() {
+    private void getSignInStatus() {
         try {
             String s = OmegakoiTownRpcCall.getSignInStatus();
             JSONObject jo = new JSONObject(s);
@@ -139,7 +139,7 @@ public class OmegakoiTown extends ModelTask {
         }
     }
 
-    private static void houseProduct() {
+    private void houseProduct() {
         try {
             String s = OmegakoiTownRpcCall.houseProduct();
             JSONObject jo = new JSONObject(s);

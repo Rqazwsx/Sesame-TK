@@ -26,6 +26,11 @@ public class ListModelField extends ModelField {
     }
 
     @Override
+    public String getType() {
+        return "LIST";
+    }
+
+    @Override
     public void setValue(Object value) {
         if (value == null) {
             value = defaultValue;
@@ -67,9 +72,17 @@ public class ListModelField extends ModelField {
                 return;
             }
             List<String> list = new ArrayList<>();
-            for (String str : value.split(",")) {
+            String[] split = value.split(",");
+            if (split.length == 1) {
+                String str = split[0];
                 if (!str.isEmpty()) {
                     list.add(str);
+                }
+            } else {
+                for (String str : split) {
+                    if (!str.isEmpty()) {
+                        list.add(str);
+                    }
                 }
             }
             setValue(list);
@@ -80,4 +93,5 @@ public class ListModelField extends ModelField {
             return String.join(",", getValue());
         }
     }
+
 }

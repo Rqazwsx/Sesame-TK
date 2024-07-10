@@ -1,14 +1,12 @@
 package tkaxv7s.xposed.sesame.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import de.robv.android.xposed.XposedHelpers;
 import lombok.Getter;
 import tkaxv7s.xposed.sesame.entity.UserEntity;
-import tkaxv7s.xposed.sesame.hook.FriendManager;
+import tkaxv7s.xposed.sesame.hook.ApplicationHook;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class UserIdMap {
@@ -32,19 +30,64 @@ public class UserIdMap {
         return userMap.values();
     }
 
-    public synchronized static void setCurrentUid(String uid) {
-        setCurrentUid(uid, true);
+    public synchronized static void initUser(String userId) {
+        setCurrentUserId(userId);
+        new Thread() {
+            @Override
+            public void run() {
+                ClassLoader loader;
+                try {
+                    loader = ApplicationHook.getClassLoader();
+                } catch (Exception e) {
+                    Log.i("Error getting classloader");
+                    return;
+                }
+                try {
+                    UserIdMap.unload();
+                    String selfId = ApplicationHook.getUserId();
+                    Class<?> clsUserIndependentCache = loader.loadClass("com.alipay.mobile.socialcommonsdk.bizdata.UserIndependentCache");
+                    Class<?> clsAliAccountDaoOp = loader.loadClass("com.alipay.mobile.socialcommonsdk.bizdata.contact.data.AliAccountDaoOp");
+                    Object aliAccountDaoOp = XposedHelpers.callStaticMethod(clsUserIndependentCache, "getCacheObj", clsAliAccountDaoOp);
+                    List<?> allFriends = (List<?>) XposedHelpers.callMethod(aliAccountDaoOp, "getAllFriends", new Object[0]);
+                    UserEntity selfEntity = null;
+                    for (Object userObject : allFriends) {
+                        try {
+                            Class<?> friendClass = userObject.getClass();
+                            String userId = (String) XposedHelpers.findField(friendClass, "userId").get(userObject);
+                            String account = (String) XposedHelpers.findField(friendClass, "account").get(userObject);
+                            String name = (String) XposedHelpers.findField(friendClass, "name").get(userObject);
+                            String nickName = (String) XposedHelpers.findField(friendClass, "nickName").get(userObject);
+                            String remarkName = (String) XposedHelpers.findField(friendClass, "remarkName").get(userObject);
+                            UserEntity userEntity = new UserEntity(userId, account, name, nickName, remarkName);
+                            if (Objects.equals(selfId, userId)) {
+                                selfEntity = userEntity;
+                            }
+                            UserIdMap.add(userEntity);
+                        } catch (Throwable t) {
+                            Log.i("addUserObject err:");
+                            Log.printStackTrace(t);
+                        }
+                    }
+                    UserIdMap.saveSelf(selfEntity);
+                    UserIdMap.save(selfId);
+                } catch (Throwable t) {
+                    Log.i("checkUnknownId.run err:");
+                    Log.printStackTrace(t);
+                }
+            }
+        }.start();
     }
 
-    public synchronized static void setCurrentUid(String uid, Boolean isUpdateFriend) {
-        if (uid == null || uid.isEmpty()) {
+    public synchronized static void setCurrentUserId(String userId) {
+        if (userId == null || userId.isEmpty()) {
             currentUid = null;
             return;
         }
-        currentUid = uid;
-        if (isUpdateFriend) {
-            FriendManager.fillUser();
-        }
+        currentUid = userId;
+    }
+
+    public static String getCurrentMaskName() {
+        return getMaskName(currentUid);
     }
 
     public static String getMaskName(String userId) {
@@ -63,7 +106,11 @@ public class UserIdMap {
         return userEntity.getFullName();
     }
 
-    public synchronized static void addUser(UserEntity userEntity) {
+    public static UserEntity get(String userId) {
+        return userMap.get(userId);
+    }
+
+    public synchronized static void add(UserEntity userEntity) {
         String userId = userEntity.getUserId();
         if (userId == null || userId.isEmpty()) {
             return;
@@ -71,7 +118,7 @@ public class UserIdMap {
         userMap.put(userId, userEntity);
     }
 
-    public synchronized static void removeUser(String userId) {
+    public synchronized static void remove(String userId) {
         userMap.remove(userId);
     }
 
@@ -89,6 +136,10 @@ public class UserIdMap {
         } catch (Exception e) {
             Log.printStackTrace(e);
         }
+    }
+
+    public synchronized static void unload() {
+        userMap.clear();
     }
 
     public synchronized static boolean save(String userId) {
@@ -111,10 +162,6 @@ public class UserIdMap {
 
     public synchronized static boolean saveSelf(UserEntity userEntity) {
         return FileUtil.write2File(JsonUtil.toNoFormatJsonString(userEntity), FileUtil.getSelfIdFile(userEntity.getUserId()));
-    }
-
-    public synchronized static void clear() {
-        userMap.clear();
     }
 
 }

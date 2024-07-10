@@ -3,8 +3,8 @@ package tkaxv7s.xposed.sesame.model.task.greenFinance;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import tkaxv7s.xposed.sesame.data.ModelFields;
-import tkaxv7s.xposed.sesame.data.ModelTask;
 import tkaxv7s.xposed.sesame.data.modelFieldExt.BooleanModelField;
+import tkaxv7s.xposed.sesame.data.task.ModelTask;
 import tkaxv7s.xposed.sesame.model.base.TaskCommon;
 import tkaxv7s.xposed.sesame.util.JsonUtil;
 import tkaxv7s.xposed.sesame.util.Log;
@@ -24,7 +24,6 @@ import java.util.TreeMap;
 public class GreenFinance extends ModelTask {
     private static final String TAG = GreenFinance.class.getSimpleName();
 
-    private final Integer executeIntervalInt = 5000;
     private BooleanModelField greenFinanceLsxd;
     private BooleanModelField greenFinanceLsbg;
     private BooleanModelField greenFinanceLscg;
@@ -62,6 +61,7 @@ public class GreenFinance extends ModelTask {
     @Override
     public void  run() {
         String s = GreenFinanceRpcCall.greenFinanceIndex();
+        TimeUtil.sleep(1000);
         try {
             JSONObject jo = new JSONObject(s);
             if (!jo.getBoolean("success")) {
@@ -109,6 +109,7 @@ public class GreenFinance extends ModelTask {
         prizes();
         //绿色经营
         GreenFinanceRpcCall.doTask("AP13159535", TAG, "绿色经营📊");
+        TimeUtil.sleep(500);
     }
 
     /**
@@ -118,6 +119,7 @@ public class GreenFinance extends ModelTask {
      */
     private void batchSelfCollect(final JSONArray bsnIds) {
         String s = GreenFinanceRpcCall.batchSelfCollect(bsnIds);
+        TimeUtil.sleep(1000);
         try {
             JSONObject joSelfCollect = new JSONObject(s);
             if (joSelfCollect.getBoolean("success")) {
@@ -129,12 +131,6 @@ public class GreenFinance extends ModelTask {
         } catch (Throwable th) {
             Log.i(TAG, "batchSelfCollect err:");
             Log.printStackTrace(TAG, th);
-        } finally {
-            try {
-                Thread.sleep(executeIntervalInt);
-            } catch (InterruptedException e) {
-                Log.printStackTrace(e);
-            }
         }
     }
 
@@ -146,6 +142,7 @@ public class GreenFinance extends ModelTask {
     private void signIn(final String sceneId) {
         try {
             String s = GreenFinanceRpcCall.signInQuery(sceneId);
+            TimeUtil.sleep(1000);
             JSONObject jo = new JSONObject(s);
             if (!jo.getBoolean("success")) {
                 Log.i(TAG + ".signIn.signInQuery", jo.optString("resultDesc"));
@@ -156,6 +153,7 @@ public class GreenFinance extends ModelTask {
                 return;
             }
             s = GreenFinanceRpcCall.signInTrigger(sceneId);
+            TimeUtil.sleep(1000);
             jo = new JSONObject(s);
             if (jo.getBoolean("success")) {
                 Log.other("绿色经营📊签到成功");
@@ -165,12 +163,6 @@ public class GreenFinance extends ModelTask {
         } catch (Throwable th) {
             Log.i(TAG, "signIn err:");
             Log.printStackTrace(TAG, th);
-        } finally {
-            try {
-                Thread.sleep(executeIntervalInt);
-            } catch (InterruptedException e) {
-                Log.printStackTrace(e);
-            }
         }
     }
 
@@ -208,6 +200,7 @@ public class GreenFinance extends ModelTask {
     private void doTick(final String type) {
         try {
             String str = GreenFinanceRpcCall.queryUserTickItem(type);
+            TimeUtil.sleep(1000);
             JSONObject jsonObject = new JSONObject(str);
             if (!jsonObject.getBoolean("success")) {
                 Log.i(TAG + ".doTick.queryUserTickItem", jsonObject.optString("resultDesc"));
@@ -220,6 +213,7 @@ public class GreenFinance extends ModelTask {
                     continue;
                 }
                 str = GreenFinanceRpcCall.submitTick(type, jsonObject.getString("behaviorCode"));
+                TimeUtil.sleep(1000);
                 JSONObject object = new JSONObject(str);
                 if (!object.getBoolean("success")
                         || !String.valueOf(true).equals(JsonUtil.getValueByPath(object, "result.result"))) {
@@ -232,12 +226,6 @@ public class GreenFinance extends ModelTask {
         } catch (Throwable th) {
             Log.i(TAG, "doTick err:");
             Log.printStackTrace(TAG, th);
-        } finally {
-            try {
-                Thread.sleep(executeIntervalInt);
-            } catch (InterruptedException e) {
-                Log.printStackTrace(e);
-            }
         }
     }
 
@@ -250,6 +238,7 @@ public class GreenFinance extends ModelTask {
         }
         try {
             String str = GreenFinanceRpcCall.queryExpireMcaPoint(1);
+            TimeUtil.sleep(1000);
             JSONObject jsonObject = new JSONObject(str);
             if (!jsonObject.getBoolean("success")) {
                 Log.i(TAG + ".donation.queryExpireMcaPoint", jsonObject.optString("resultDesc"));
@@ -266,6 +255,7 @@ public class GreenFinance extends ModelTask {
             //不管是否可以捐小于非100的倍数了，，第一次捐200，最后按amount-200*n
             Log.other("绿色经营📊1天内过期的金币[" + amount + "]");
             str = GreenFinanceRpcCall.queryAllDonationProjectNew();
+            TimeUtil.sleep(1000);
             jsonObject = new JSONObject(str);
             if (!jsonObject.getBoolean("success")) {
                 Log.i(TAG + ".donation.queryAllDonationProjectNew", jsonObject.optString("resultDesc"));
@@ -294,6 +284,7 @@ public class GreenFinance extends ModelTask {
                     am = String.valueOf(r[1]);
                 }
                 str = GreenFinanceRpcCall.donation(id, am);
+                TimeUtil.sleep(1000);
                 jsonObject = new JSONObject(str);
                 if (!jsonObject.getBoolean("success")) {
                     Log.i(TAG + ".donation." + id, jsonObject.optString("resultDesc"));
@@ -305,12 +296,6 @@ public class GreenFinance extends ModelTask {
         } catch (Throwable th) {
             Log.i(TAG, "donation err:");
             Log.printStackTrace(TAG, th);
-        } finally {
-            try {
-                Thread.sleep(executeIntervalInt);
-            } catch (InterruptedException e) {
-                Log.printStackTrace(e);
-            }
         }
     }
 
@@ -319,11 +304,12 @@ public class GreenFinance extends ModelTask {
      */
     private void prizes() {
         try {
-            if (Status.canGreenFinancePrizesMap()) {
+            if (!Status.canGreenFinancePrizesMap()) {
                 return;
             }
             String campId = "CP14664674";
             String str = GreenFinanceRpcCall.queryPrizes(campId);
+            TimeUtil.sleep(1000);
             JSONObject jsonObject = new JSONObject(str);
             if (!jsonObject.getBoolean("success")) {
                 Log.i(TAG + ".prizes.queryPrizes", jsonObject.optString("resultDesc"));
@@ -345,6 +331,7 @@ public class GreenFinance extends ModelTask {
                 }
             }
             str = GreenFinanceRpcCall.campTrigger(campId);
+            TimeUtil.sleep(1000);
             jsonObject = new JSONObject(str);
             if (!jsonObject.getBoolean("success")) {
                 Log.i(TAG + ".prizes.campTrigger", jsonObject.optString("resultDesc"));
@@ -358,12 +345,6 @@ public class GreenFinance extends ModelTask {
         } catch (Throwable th) {
             Log.i(TAG, "prizes err:");
             Log.printStackTrace(TAG, th);
-        } finally {
-            try {
-                Thread.sleep(executeIntervalInt);
-            } catch (InterruptedException e) {
-                Log.printStackTrace(e);
-            }
         }
     }
 
@@ -372,13 +353,14 @@ public class GreenFinance extends ModelTask {
      */
     private void batchStealFriend() {
         try {
-            if (Status.canGreenFinancePointFriend() || !greenFinancePointFriend.getValue()) {
+            if (!Status.canGreenFinancePointFriend() || !greenFinancePointFriend.getValue()) {
                 return;
             }
             int n = 0;
             while (true) {
                 try {
                     String str = GreenFinanceRpcCall.queryRankingList(n);
+                    TimeUtil.sleep(1000);
                     JSONObject jsonObject = new JSONObject(str);
                     if (!jsonObject.getBoolean("success")) {
                         Log.i(TAG + ".batchStealFriend.queryRankingList", jsonObject.optString("resultDesc"));
@@ -402,6 +384,7 @@ public class GreenFinance extends ModelTask {
                             continue;
                         }
                         str = GreenFinanceRpcCall.queryGuestIndexPoints(friendId);
+                        TimeUtil.sleep(1000);
                         jsonObject = new JSONObject(str);
                         if (!jsonObject.getBoolean("success")) {
                             Log.i(TAG + ".batchStealFriend.queryGuestIndexPoints", jsonObject.optString("resultDesc"));
@@ -422,6 +405,7 @@ public class GreenFinance extends ModelTask {
                             continue;
                         }
                         str = GreenFinanceRpcCall.batchSteal(jsonArray, friendId);
+                        TimeUtil.sleep(1000);
                         jsonObject = new JSONObject(str);
                         if (!jsonObject.getBoolean("success")) {
                             Log.i(TAG + ".batchStealFriend.batchSteal", jsonObject.optString("resultDesc"));
@@ -429,21 +413,15 @@ public class GreenFinance extends ModelTask {
                         }
                         Log.other("绿色经营🤩收[" + object.optString("nickName") + "]" +
                                 JsonUtil.getValueByPath(jsonObject, "result.totalCollectPoint") + "金币");
-                        TimeUtil.sleep(750);
                     }
-                } finally {
-                    TimeUtil.sleep(2000);
+                } catch (Exception e) {
+                    Log.printStackTrace(e);
+                    break;
                 }
             }
         } catch (Throwable th) {
             Log.i(TAG, "batchStealFriend err:");
             Log.printStackTrace(TAG, th);
-        } finally {
-            try {
-                Thread.sleep(executeIntervalInt);
-            } catch (InterruptedException e) {
-                Log.printStackTrace(e);
-            }
         }
     }
 

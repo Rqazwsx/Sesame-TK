@@ -8,7 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import tkaxv7s.xposed.sesame.R;
 import tkaxv7s.xposed.sesame.data.ModelField;
@@ -33,16 +32,27 @@ public class SelectModelField extends ModelField {
     private static final TypeReference<KVNode<LinkedHashMap<String, Integer>, Boolean>> typeReference = new TypeReference<KVNode<LinkedHashMap<String, Integer>, Boolean>>() {
     };
 
-    private List<? extends IdAndName> idAndNameList;
+    private SelectListFunc selectListFunc;
 
-    public SelectModelField(String code, String name, KVNode<Map<String, Integer>, Boolean> value, List<? extends IdAndName> idAndNameList) {
+    private List<? extends IdAndName> expandValue;
+
+    public SelectModelField(String code, String name, KVNode<Map<String, Integer>, Boolean> value, List<? extends IdAndName> expandValue) {
         super(code, name, value);
-        this.idAndNameList = idAndNameList;
+        this.expandValue = expandValue;
     }
 
-    @JsonIgnore
-    public List<? extends IdAndName> getIdAndNameList() {
-        return idAndNameList;
+    public SelectModelField(String code, String name, KVNode<Map<String, Integer>, Boolean> value, SelectListFunc selectListFunc) {
+        super(code, name, value);
+        this.selectListFunc = selectListFunc;
+    }
+
+    @Override
+    public String getType() {
+        return "SELECT";
+    }
+
+    public List<? extends IdAndName> getExpandValue() {
+        return selectListFunc == null ? expandValue : selectListFunc.getList();
     }
 
     @Override
@@ -56,6 +66,10 @@ public class SelectModelField extends ModelField {
     @Override
     public KVNode<Map<String, Integer>, Boolean> getValue() {
         return (KVNode<Map<String, Integer>, Boolean>) value;
+    }
+
+    public String getConfigValue() {
+        return JsonUtil.toNoFormatJsonString(value);
     }
 
     @Override
@@ -80,6 +94,15 @@ public class SelectModelField extends ModelField {
             super(code, name, value, idAndNameList);
         }
 
+        public SelectOneModelField(String code, String name, KVNode<Map<String, Integer>, Boolean> value, SelectListFunc selectListFunc) {
+            super(code, name, value, selectListFunc);
+        }
+
+        @Override
+        public String getType() {
+            return "SELECT_ONE";
+        }
+
         @Override
         public View getView(Context context) {
             Button btn = new Button(context);
@@ -96,4 +119,7 @@ public class SelectModelField extends ModelField {
         }
     }
 
+    public interface SelectListFunc {
+        List<? extends IdAndName> getList();
+    }
 }

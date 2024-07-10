@@ -3,7 +3,7 @@ package tkaxv7s.xposed.sesame.model.task.ancientTree;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import tkaxv7s.xposed.sesame.data.ModelFields;
-import tkaxv7s.xposed.sesame.data.ModelTask;
+import tkaxv7s.xposed.sesame.data.task.ModelTask;
 import tkaxv7s.xposed.sesame.data.modelFieldExt.BooleanModelField;
 import tkaxv7s.xposed.sesame.data.modelFieldExt.SelectModelField;
 import tkaxv7s.xposed.sesame.entity.AreaCode;
@@ -33,7 +33,7 @@ public class AncientTree extends ModelTask {
     public ModelFields getFields() {
         ModelFields modelFields = new ModelFields();
         modelFields.addField(ancientTreeOnlyWeek = new BooleanModelField("ancientTreeOnlyWeek", "仅星期一、三、五运行保护古树", false));
-        modelFields.addField(ancientTreeCityCodeList = new SelectModelField("ancientTreeCityCodeList", "古树区划代码列表", new KVNode<>(new LinkedHashMap<>(), false), AreaCode.getList()));
+        modelFields.addField(ancientTreeCityCodeList = new SelectModelField("ancientTreeCityCodeList", "古树区划代码列表", new KVNode<>(new LinkedHashMap<>(), false), AreaCode::getList));
         return modelFields;
     }
 
